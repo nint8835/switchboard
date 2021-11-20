@@ -110,6 +110,31 @@ func TestSwitchboardHandleInteraction_WithKnownCommand(t *testing.T) {
 	}
 }
 
+func TestSwitchboardHandlerInteraction_WithCommandErrorPropagates(t *testing.T) {
+	switchboard := &Switchboard{
+		make(map[string]Command),
+	}
+
+	expectedError := errors.New("test")
+
+	switchboard.AddCommand(testCommand, func(s *discordgo.Session, ic *discordgo.InteractionCreate) error {
+		return expectedError
+	})
+
+	err := switchboard.HandleInteractionCreate(nil, &discordgo.InteractionCreate{
+		Interaction: &discordgo.Interaction{
+			Type: discordgo.InteractionApplicationCommand,
+			Data: discordgo.ApplicationCommandInteractionData{
+				Name: "test",
+			},
+		},
+	})
+
+	if !errors.Is(err, expectedError) {
+		t.Errorf("Expected error %v, got %v", expectedError, err)
+	}
+}
+
 func TestNew(t *testing.T) {
 	switchboard := New()
 
