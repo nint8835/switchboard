@@ -2,7 +2,10 @@ module github.com/nint8835/switchboard
 
 go 1.18
 
-require github.com/bwmarrin/discordgo v0.26.1
+require (
+	github.com/bwmarrin/discordgo v0.26.1
+	github.com/go-test/deep v1.0.8
+)
 
 require (
 	github.com/gorilla/websocket v1.5.0 // indirect
