@@ -2,7 +2,6 @@ package switchboard
 
 import (
 	"errors"
-	"reflect"
 	"testing"
 
 	"github.com/bwmarrin/discordgo"
@@ -11,18 +10,17 @@ import (
 
 func Test_getCommandOptions_WithAllValidOptionTypes(t *testing.T) {
 	options, err := getCommandOptions(
-		reflect.TypeOf(
-			struct {
-				String     string
-				Int        int
-				Bool       bool
-				User       discordgo.User
-				Channel    discordgo.Channel
-				Role       discordgo.Role
-				Float      float64
-				Attachment discordgo.MessageAttachment
-			}{},
-		),
+		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, args struct {
+			String     string
+			Int        int
+			Bool       bool
+			User       discordgo.User
+			Channel    discordgo.Channel
+			Role       discordgo.Role
+			Float      float64
+			Attachment discordgo.MessageAttachment
+		}) {
+		},
 	)
 	if err != nil {
 		t.Errorf("got unexpected error getting command options: %s", err)
@@ -79,9 +77,10 @@ func Test_getCommandOptions_WithAllValidOptionTypes(t *testing.T) {
 
 func Test_getCommandOptions_WithPointerOption(t *testing.T) {
 	options, err := getCommandOptions(
-		reflect.TypeOf(struct {
+		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, args struct {
 			Pointer *string
-		}{}),
+		}) {
+		},
 	)
 
 	if err != nil {
@@ -104,9 +103,10 @@ func Test_getCommandOptions_WithPointerOption(t *testing.T) {
 
 func Test_getCommandOptions_WithDefaultValue(t *testing.T) {
 	options, err := getCommandOptions(
-		reflect.TypeOf(struct {
+		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, args struct {
 			Default string `default:"default_val"`
-		}{}),
+		}) {
+		},
 	)
 
 	if err != nil {
@@ -129,9 +129,10 @@ func Test_getCommandOptions_WithDefaultValue(t *testing.T) {
 
 func Test_getCommandOptions_WithDescription(t *testing.T) {
 	options, err := getCommandOptions(
-		reflect.TypeOf(struct {
+		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, args struct {
 			Example string `description:"This is a test description"`
-		}{}),
+		}) {
+		},
 	)
 
 	if err != nil {
@@ -155,7 +156,7 @@ func Test_getCommandOptions_WithDescription(t *testing.T) {
 
 func Test_getCommandOptions_WithNoOptions(t *testing.T) {
 	options, err := getCommandOptions(
-		reflect.TypeOf(struct{}{}),
+		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, args struct{}) {},
 	)
 
 	if err != nil {
@@ -172,9 +173,10 @@ func Test_getCommandOptions_WithNoOptions(t *testing.T) {
 
 func Test_getCommandOptions_WithInvalidArgumentType(t *testing.T) {
 	_, err := getCommandOptions(
-		reflect.TypeOf(struct {
+		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, args struct {
 			Unsupported func()
-		}{}),
+		}) {
+		},
 	)
 
 	if err == nil {
@@ -182,5 +184,86 @@ func Test_getCommandOptions_WithInvalidArgumentType(t *testing.T) {
 	}
 	if !errors.Is(err, ErrInvalidArgumentType) {
 		t.Errorf("got unexpected error when getting command options: %s", err)
+	}
+}
+
+func Test_validateHandler_WithNonFunction(t *testing.T) {
+	err := validateHandler(false)
+
+	if err == nil {
+		t.Error("did not get expected error when validating handler")
+	}
+	if !errors.Is(err, ErrHandlerNotFunction) {
+		t.Errorf("got unexpected error when validating handler: %s", err)
+	}
+}
+
+func Test_validateHandler_WithWrongArgCount(t *testing.T) {
+	err := validateHandler(func() {})
+
+	if err == nil {
+		t.Error("did not get expected error when validating handler")
+	}
+	if !errors.Is(err, ErrHandlerInvalidParameterCount) {
+		t.Errorf("got unexpected error when validating handler: %s", err)
+	}
+}
+
+func Test_validateHandler_WithInvalidFirstArg(t *testing.T) {
+	err := validateHandler(func(first bool, second *discordgo.InteractionCreate, third struct{}) {})
+
+	if err == nil {
+		t.Error("did not get expected error when validating handler")
+	}
+	if !errors.Is(err, ErrHandlerInvalidFirstParameterType) {
+		t.Errorf("got unexpected error when validating handler: %s", err)
+	}
+
+	err = validateHandler(func(first discordgo.Session, second *discordgo.InteractionCreate, third struct{}) {})
+
+	if err == nil {
+		t.Error("did not get expected error when validating handler")
+	}
+	if !errors.Is(err, ErrHandlerInvalidFirstParameterType) {
+		t.Errorf("got unexpected error when validating handler: %s", err)
+	}
+}
+
+func Test_validateHandler_WithInvalidSecondArg(t *testing.T) {
+	err := validateHandler(func(first *discordgo.Session, second bool, third struct{}) {})
+
+	if err == nil {
+		t.Error("did not get expected error when validating handler")
+	}
+	if !errors.Is(err, ErrHandlerInvalidSecondParameterType) {
+		t.Errorf("got unexpected error when validating handler: %s", err)
+	}
+
+	err = validateHandler(func(first *discordgo.Session, second discordgo.InteractionCreate, third struct{}) {})
+
+	if err == nil {
+		t.Error("did not get expected error when validating handler")
+	}
+	if !errors.Is(err, ErrHandlerInvalidSecondParameterType) {
+		t.Errorf("got unexpected error when validating handler: %s", err)
+	}
+}
+
+func Test_validateHandler_WithInvalidThird(t *testing.T) {
+	err := validateHandler(func(first *discordgo.Session, second *discordgo.InteractionCreate, third bool) {})
+
+	if err == nil {
+		t.Error("did not get expected error when validating handler")
+	}
+	if !errors.Is(err, ErrHandlerInvalidThirdParameterType) {
+		t.Errorf("got unexpected error when validating handler: %s", err)
+	}
+}
+
+func Test_validateHandler_WithValidHandler(t *testing.T) {
+	err := validateHandler(func(first *discordgo.Session, second *discordgo.InteractionCreate, third struct{}) {})
+
+	if err != nil {
+		t.Errorf("got unexpected error when validating handler: %s", err)
 	}
 }

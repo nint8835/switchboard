@@ -36,7 +36,10 @@ func getOptionType(argType reflect.Type) (discordgo.ApplicationCommandOptionType
 	}
 }
 
-func getCommandOptions(argsStructType reflect.Type) ([]*discordgo.ApplicationCommandOption, error) {
+func getCommandOptions(handler any) ([]*discordgo.ApplicationCommandOption, error) {
+	// Assumes validateHandler has been called before passing a handler to this function - will potentially panic otherwise
+	argsStructType := reflect.TypeOf(handler).In(2)
+
 	options := []*discordgo.ApplicationCommandOption{}
 
 	for index := 0; index < argsStructType.NumField(); index++ {
@@ -64,4 +67,32 @@ func getCommandOptions(argsStructType reflect.Type) ([]*discordgo.ApplicationCom
 	}
 
 	return options, nil
+}
+
+func validateHandler(handler any) error {
+	handlerType := reflect.TypeOf(handler)
+
+	if handlerType.Kind() != reflect.Func {
+		return ErrHandlerNotFunction
+	}
+
+	if handlerType.NumIn() != 3 {
+		return ErrHandlerInvalidParameterCount
+	}
+
+	firstParam := handlerType.In(0)
+	if firstParam.Kind() != reflect.Ptr || firstParam.Elem() != reflect.TypeOf(discordgo.Session{}) {
+		return ErrHandlerInvalidFirstParameterType
+	}
+
+	secondParam := handlerType.In(1)
+	if secondParam.Kind() != reflect.Ptr || secondParam.Elem() != reflect.TypeOf(discordgo.InteractionCreate{}) {
+		return ErrHandlerInvalidSecondParameterType
+	}
+
+	if handlerType.In(2).Kind() != reflect.Struct {
+		return ErrHandlerInvalidThirdParameterType
+	}
+
+	return nil
 }

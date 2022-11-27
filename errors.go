@@ -5,3 +5,8 @@ import (
 )
 
 var ErrInvalidArgumentType = errors.New("struct field type is not a supported option type")
+var ErrHandlerNotFunction = errors.New("provided command handler is not a function")
+var ErrHandlerInvalidParameterCount = errors.New("invalid number of handler arguments")
+var ErrHandlerInvalidFirstParameterType = errors.New("incorrect first parameter type for handler - first parameter must be of type *discordgo.Session")
+var ErrHandlerInvalidSecondParameterType = errors.New("incorrect second parameter type for handler - second parameter must be of type *discordgo.InteractionCreate")
+var ErrHandlerInvalidThirdParameterType = errors.New("incorrect third parameter type for handler - third parameter must be of type struct")
