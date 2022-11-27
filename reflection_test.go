@@ -219,7 +219,9 @@ func Test_validateHandler_WithInvalidFirstArg(t *testing.T) {
 		t.Errorf("got unexpected error when validating handler: %s", err)
 	}
 
-	err = validateHandler(func(first discordgo.Session, second *discordgo.InteractionCreate, third struct{}) {})
+	err = validateHandler(
+		func(first discordgo.Session, second *discordgo.InteractionCreate, third struct{}) {}, //nolint:govet
+	)
 
 	if err == nil {
 		t.Error("did not get expected error when validating handler")

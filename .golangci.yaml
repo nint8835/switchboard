@@ -1,0 +1,19 @@
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - errname
+    - exhaustive
+    - godot
+    - goimports
+    - lll
+    - usestdlibvars
+    - whitespace
+
+linters-settings:
+  goimports:
+    local-prefixes: github.com/nint8835/switchboard
