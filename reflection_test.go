@@ -269,3 +269,119 @@ func Test_validateHandler_WithValidHandler(t *testing.T) {
 		t.Errorf("got unexpected error when validating handler: %s", err)
 	}
 }
+
+func Test_invokeCommand_WithNoArgs(t *testing.T) {
+	interactionData := discordgo.InteractionCreate{
+		Interaction: &discordgo.Interaction{
+			Type: discordgo.InteractionApplicationCommand,
+			Data: discordgo.ApplicationCommandInteractionData{
+				Options: []*discordgo.ApplicationCommandInteractionDataOption{},
+			},
+		},
+	}
+
+	called := false
+
+	invokeCommand(
+		&discordgo.Session{},
+		&interactionData,
+		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, _ struct{}) {
+			called = true
+		})
+
+	if !called {
+		t.Error("handler function not called")
+	}
+}
+
+func Test_invokeCommand_WithProvidedArgs(t *testing.T) {
+	interactionData := discordgo.InteractionCreate{
+		Interaction: &discordgo.Interaction{
+			Type: discordgo.InteractionApplicationCommand,
+			Data: discordgo.ApplicationCommandInteractionData{
+				Options: []*discordgo.ApplicationCommandInteractionDataOption{
+					{
+						Name:  "string",
+						Type:  discordgo.ApplicationCommandOptionString,
+						Value: "test",
+					},
+					{
+						Name:  "int",
+						Type:  discordgo.ApplicationCommandOptionInteger,
+						Value: 12345.0,
+					},
+					{
+						Name:  "bool",
+						Type:  discordgo.ApplicationCommandOptionBoolean,
+						Value: true,
+					},
+					{
+						Name:  "user",
+						Type:  discordgo.ApplicationCommandOptionUser,
+						Value: "12345",
+					},
+					{
+						Name:  "channel",
+						Type:  discordgo.ApplicationCommandOptionChannel,
+						Value: "12345",
+					},
+					{
+						Name:  "role",
+						Type:  discordgo.ApplicationCommandOptionRole,
+						Value: "12345",
+					},
+					{
+						Name:  "float",
+						Type:  discordgo.ApplicationCommandOptionNumber,
+						Value: 12345.0,
+					},
+					//{
+					//	Name:  "attachment",
+					//	Type:  discordgo.ApplicationCommandOptionAttachment,
+					//	Value: "12345",
+					//},
+				},
+			},
+		},
+	}
+
+	called := false
+
+	type Args struct {
+		String  string
+		Int     int
+		Bool    bool
+		User    discordgo.User
+		Channel discordgo.Channel
+		Role    discordgo.Role
+		Float   float64
+		//Attachment discordgo.MessageAttachment
+	}
+
+	invokeCommand(
+		nil,
+		&interactionData,
+		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, args Args) {
+			called = true
+
+			if diff := deep.Equal(
+				args,
+				Args{
+					String:  "test",
+					Int:     12345,
+					Bool:    true,
+					User:    discordgo.User{ID: "12345"},
+					Channel: discordgo.Channel{ID: "12345"},
+					Role:    discordgo.Role{ID: "12345"},
+					Float:   12345.0,
+					//Attachment: discordgo.MessageAttachment{ID: "12345"},
+				},
+			); diff != nil {
+				t.Error(diff)
+			}
+		})
+
+	if !called {
+		t.Error("handler function not called")
+	}
+}

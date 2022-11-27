@@ -96,3 +96,57 @@ func validateHandler(handler any) error {
 
 	return nil
 }
+
+func invokeCommand(session *discordgo.Session, interaction *discordgo.InteractionCreate, handler any) {
+	optionsMap := map[string]*discordgo.ApplicationCommandInteractionDataOption{}
+
+	for _, option := range interaction.ApplicationCommandData().Options {
+		optionsMap[option.Name] = option
+	}
+
+	argsParamType := reflect.TypeOf(handler).In(2)
+	argsParamValue := reflect.New(argsParamType).Elem()
+
+	for index := 0; index < argsParamValue.NumField(); index++ {
+		field := argsParamValue.Field(index)
+		fieldType := argsParamType.Field(index)
+
+		option, optionProvided := optionsMap[strings.ToLower(fieldType.Name)]
+		if optionProvided {
+			var value reflect.Value
+
+			switch option.Type {
+			case discordgo.ApplicationCommandOptionString:
+				value = reflect.ValueOf(option.StringValue())
+			case discordgo.ApplicationCommandOptionInteger:
+				value = reflect.ValueOf(int(option.IntValue()))
+			case discordgo.ApplicationCommandOptionBoolean:
+				value = reflect.ValueOf(option.BoolValue())
+			// TODO: Is it fine to dereference users, roles, etc.?
+			case discordgo.ApplicationCommandOptionUser:
+				value = reflect.ValueOf(*option.UserValue(session))
+			case discordgo.ApplicationCommandOptionChannel:
+				value = reflect.ValueOf(*option.ChannelValue(session))
+			case discordgo.ApplicationCommandOptionRole:
+				value = reflect.ValueOf(*option.RoleValue(session, interaction.GuildID))
+			case discordgo.ApplicationCommandOptionNumber:
+				value = reflect.ValueOf(option.FloatValue())
+				// TODO: find how to get attachment val
+				//case discordgo.ApplicationCommandOptionAttachment:
+				//	value = reflect.ValueOf(*option.)
+			}
+
+			field.Set(value)
+			continue
+		}
+		// TODO: Handle options which use default values
+	}
+
+	reflect.ValueOf(handler).Call(
+		[]reflect.Value{
+			reflect.ValueOf(session),
+			reflect.ValueOf(interaction),
+			argsParamValue,
+		},
+	)
+}
