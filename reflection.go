@@ -115,7 +115,7 @@ func invokeCommand(session *discordgo.Session, interaction *discordgo.Interactio
 		if optionProvided {
 			var value reflect.Value
 
-			switch option.Type {
+			switch option.Type { //nolint:exhaustive
 			case discordgo.ApplicationCommandOptionString:
 				value = reflect.ValueOf(option.StringValue())
 			case discordgo.ApplicationCommandOptionInteger:
