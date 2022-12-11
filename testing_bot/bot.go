@@ -21,7 +21,7 @@ type testArgs struct {
 
 func testCommand(session *discordgo.Session, interaction *discordgo.InteractionCreate, args testArgs) {
 	fmt.Printf("%#+v\n", args)
-	session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+	err := session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Embeds: []*discordgo.MessageEmbed{
@@ -33,6 +33,9 @@ func testCommand(session *discordgo.Session, interaction *discordgo.InteractionC
 			},
 		},
 	})
+	if err != nil {
+		log.Printf("Error responding to command: %s", err)
+	}
 }
 
 func main() {
@@ -43,7 +46,7 @@ func main() {
 	session.Identify.Intents = discordgo.IntentsAllWithoutPrivileged
 
 	switchboardInstance := &switchboard.Switchboard{}
-	switchboardInstance.AddCommand(&switchboard.Command{
+	_ = switchboardInstance.AddCommand(&switchboard.Command{
 		Name:        "test",
 		Description: "Hello world from Switchboard!",
 		Handler:     testCommand,
@@ -61,7 +64,7 @@ func main() {
 	}
 
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
 	if err = session.Close(); err != nil {

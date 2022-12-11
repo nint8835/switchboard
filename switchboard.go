@@ -10,7 +10,10 @@ type Switchboard struct {
 	commands []*Command
 }
 
-func (s *Switchboard) handleInteractionApplicationCommand(session *discordgo.Session, interaction *discordgo.InteractionCreate) error {
+func (s *Switchboard) handleInteractionApplicationCommand(
+	session *discordgo.Session,
+	interaction *discordgo.InteractionCreate,
+) error {
 	for _, command := range s.commands {
 		if command.Name == interaction.ApplicationCommandData().Name &&
 			(command.GuildID == "" || command.GuildID == interaction.GuildID) {
@@ -23,9 +26,9 @@ func (s *Switchboard) handleInteractionApplicationCommand(session *discordgo.Ses
 }
 
 func (s *Switchboard) HandleInteractionCreate(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
-	switch interaction.Type {
+	switch interaction.Type { //nolint:exhaustive
 	case discordgo.InteractionApplicationCommand:
-		s.handleInteractionApplicationCommand(session, interaction)
+		s.handleInteractionApplicationCommand(session, interaction) //nolint:errcheck
 	default:
 		// TODO: Figure out error handling
 	}
