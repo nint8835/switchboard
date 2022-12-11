@@ -40,6 +40,7 @@ func getCommandOptions(handler any) ([]*discordgo.ApplicationCommandOption, erro
 	// Assumes validateHandler has been called before passing a handler to this function - will potentially panic otherwise
 	argsStructType := reflect.TypeOf(handler).In(2)
 
+	//goland:noinspection GoPreferNilSlice
 	options := []*discordgo.ApplicationCommandOption{}
 
 	for index := 0; index < argsStructType.NumField(); index++ {
@@ -52,15 +53,16 @@ func getCommandOptions(handler any) ([]*discordgo.ApplicationCommandOption, erro
 			return nil, fmt.Errorf("unable to determine type for struct field %s: %w", arg.Name, err)
 		}
 
-		option := &discordgo.ApplicationCommandOption{
-			Name:     strings.ToLower(arg.Name),
-			Required: !(hasDefault || isPtr),
-			Type:     optionType,
+		description, hasDescription := arg.Tag.Lookup("description")
+		if !hasDescription {
+			return nil, fmt.Errorf("no description provided for argument %s", arg.Name)
 		}
 
-		description, hasDescription := arg.Tag.Lookup("description")
-		if hasDescription {
-			option.Description = description
+		option := &discordgo.ApplicationCommandOption{
+			Name:        strings.ToLower(arg.Name),
+			Required:    !(hasDefault || isPtr),
+			Type:        optionType,
+			Description: description,
 		}
 
 		options = append(options, option)

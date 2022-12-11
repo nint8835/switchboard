@@ -11,14 +11,14 @@ import (
 func Test_getCommandOptions_WithAllValidOptionTypes(t *testing.T) {
 	options, err := getCommandOptions(
 		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, args struct {
-			String     string
-			Int        int
-			Bool       bool
-			User       discordgo.User
-			Channel    discordgo.Channel
-			Role       discordgo.Role
-			Float      float64
-			Attachment discordgo.MessageAttachment
+			String     string                      `description:"String argument"`
+			Int        int                         `description:"Int argument"`
+			Bool       bool                        `description:"Bool argument"`
+			User       discordgo.User              `description:"User argument"`
+			Channel    discordgo.Channel           `description:"Channel argument"`
+			Role       discordgo.Role              `description:"Role argument"`
+			Float      float64                     `description:"Float argument"`
+			Attachment discordgo.MessageAttachment `description:"Attachment argument"`
 		}) {
 		},
 	)
@@ -30,44 +30,52 @@ func Test_getCommandOptions_WithAllValidOptionTypes(t *testing.T) {
 		options,
 		[]*discordgo.ApplicationCommandOption{
 			{
-				Name:     "string",
-				Required: true,
-				Type:     discordgo.ApplicationCommandOptionString,
+				Name:        "string",
+				Required:    true,
+				Type:        discordgo.ApplicationCommandOptionString,
+				Description: "String argument",
 			},
 			{
-				Name:     "int",
-				Required: true,
-				Type:     discordgo.ApplicationCommandOptionInteger,
+				Name:        "int",
+				Required:    true,
+				Type:        discordgo.ApplicationCommandOptionInteger,
+				Description: "Int argument",
 			},
 			{
-				Name:     "bool",
-				Required: true,
-				Type:     discordgo.ApplicationCommandOptionBoolean,
+				Name:        "bool",
+				Required:    true,
+				Type:        discordgo.ApplicationCommandOptionBoolean,
+				Description: "Bool argument",
 			},
 			{
-				Name:     "user",
-				Required: true,
-				Type:     discordgo.ApplicationCommandOptionUser,
+				Name:        "user",
+				Required:    true,
+				Type:        discordgo.ApplicationCommandOptionUser,
+				Description: "User argument",
 			},
 			{
-				Name:     "channel",
-				Required: true,
-				Type:     discordgo.ApplicationCommandOptionChannel,
+				Name:        "channel",
+				Required:    true,
+				Type:        discordgo.ApplicationCommandOptionChannel,
+				Description: "Channel argument",
 			},
 			{
-				Name:     "role",
-				Required: true,
-				Type:     discordgo.ApplicationCommandOptionRole,
+				Name:        "role",
+				Required:    true,
+				Type:        discordgo.ApplicationCommandOptionRole,
+				Description: "Role argument",
 			},
 			{
-				Name:     "float",
-				Required: true,
-				Type:     discordgo.ApplicationCommandOptionNumber,
+				Name:        "float",
+				Required:    true,
+				Type:        discordgo.ApplicationCommandOptionNumber,
+				Description: "Float argument",
 			},
 			{
-				Name:     "attachment",
-				Required: true,
-				Type:     discordgo.ApplicationCommandOptionAttachment,
+				Name:        "attachment",
+				Required:    true,
+				Type:        discordgo.ApplicationCommandOptionAttachment,
+				Description: "Attachment argument",
 			},
 		},
 	); diff != nil {
@@ -78,7 +86,7 @@ func Test_getCommandOptions_WithAllValidOptionTypes(t *testing.T) {
 func Test_getCommandOptions_WithPointerOption(t *testing.T) {
 	options, err := getCommandOptions(
 		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, args struct {
-			Pointer *string
+			Pointer *string `description:"Pointer"`
 		}) {
 		},
 	)
@@ -91,9 +99,10 @@ func Test_getCommandOptions_WithPointerOption(t *testing.T) {
 		options,
 		[]*discordgo.ApplicationCommandOption{
 			{
-				Name:     "pointer",
-				Required: false,
-				Type:     discordgo.ApplicationCommandOptionString,
+				Name:        "pointer",
+				Required:    false,
+				Type:        discordgo.ApplicationCommandOptionString,
+				Description: "Pointer",
 			},
 		},
 	); diff != nil {
@@ -104,7 +113,7 @@ func Test_getCommandOptions_WithPointerOption(t *testing.T) {
 func Test_getCommandOptions_WithDefaultValue(t *testing.T) {
 	options, err := getCommandOptions(
 		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, args struct {
-			Default string `default:"default_val"`
+			Default string `default:"default_val" description:"Default"`
 		}) {
 		},
 	)
@@ -117,36 +126,10 @@ func Test_getCommandOptions_WithDefaultValue(t *testing.T) {
 		options,
 		[]*discordgo.ApplicationCommandOption{
 			{
-				Name:     "default",
-				Required: false,
-				Type:     discordgo.ApplicationCommandOptionString,
-			},
-		},
-	); diff != nil {
-		t.Error(diff)
-	}
-}
-
-func Test_getCommandOptions_WithDescription(t *testing.T) {
-	options, err := getCommandOptions(
-		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, args struct {
-			Example string `description:"This is a test description"`
-		}) {
-		},
-	)
-
-	if err != nil {
-		t.Errorf("got unexpected error getting command options: %s", err)
-	}
-
-	if diff := deep.Equal(
-		options,
-		[]*discordgo.ApplicationCommandOption{
-			{
-				Name:        "example",
-				Required:    true,
+				Name:        "default",
+				Required:    false,
 				Type:        discordgo.ApplicationCommandOptionString,
-				Description: "This is a test description",
+				Description: "Default",
 			},
 		},
 	); diff != nil {
