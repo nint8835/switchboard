@@ -168,6 +168,12 @@ func invokeCommand(session *discordgo.Session, interaction *discordgo.Interactio
 				//	value = reflect.ValueOf(*option.)
 			}
 
+			if fieldType.Type.Kind() == reflect.Ptr {
+				p := reflect.New(value.Type())
+				p.Elem().Set(value)
+				value = p
+			}
+
 			field.Set(value)
 		} else if fieldType.Type.Kind() != reflect.Ptr {
 			value, err := getDefaultValue(fieldType)
