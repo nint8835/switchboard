@@ -24,3 +24,6 @@ var ErrHandlerInvalidThirdParameterType = errors.New(
 )
 var ErrUnknownCommand = errors.New("unknown command")
 var ErrUnsupportedInteractionType = errors.New("unsupported interaction type")
+var ErrUnsupportedDefaultArgType = errors.New(
+	"attempted to use default value for option type which does not currently support default values",
+)

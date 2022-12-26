@@ -3,6 +3,7 @@ package switchboard
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -99,6 +100,35 @@ func validateHandler(handler any) error {
 	return nil
 }
 
+func getDefaultValue(field reflect.StructField) (reflect.Value, error) {
+	defaultVal := field.Tag.Get("default")
+
+	switch field.Type {
+	case reflect.TypeOf(""):
+		return reflect.ValueOf(defaultVal), nil
+	case reflect.TypeOf(0):
+		intVal, err := strconv.Atoi(defaultVal)
+		if err != nil {
+			return reflect.Value{}, fmt.Errorf("error parsing default value: %w", err)
+		}
+		return reflect.ValueOf(intVal), nil
+	case reflect.TypeOf(false):
+		boolVal, err := strconv.ParseBool(defaultVal)
+		if err != nil {
+			return reflect.Value{}, fmt.Errorf("error parsing default value: %w", err)
+		}
+		return reflect.ValueOf(boolVal), nil
+	case reflect.TypeOf(0.0):
+		floatVal, err := strconv.ParseFloat(defaultVal, 64)
+		if err != nil {
+			return reflect.Value{}, fmt.Errorf("error parsing default value: %w", err)
+		}
+		return reflect.ValueOf(floatVal), nil
+	default:
+		return reflect.Value{}, ErrUnsupportedDefaultArgType
+	}
+}
+
 func invokeCommand(session *discordgo.Session, interaction *discordgo.InteractionCreate, handler any) {
 	optionsMap := map[string]*discordgo.ApplicationCommandInteractionDataOption{}
 
@@ -139,9 +169,15 @@ func invokeCommand(session *discordgo.Session, interaction *discordgo.Interactio
 			}
 
 			field.Set(value)
-			continue
+		} else if fieldType.Type.Kind() != reflect.Ptr {
+			value, err := getDefaultValue(fieldType)
+			if err != nil {
+				// TODO: Handle properly, not panic
+				panic(fmt.Errorf("error populating default value for field %s: %w", fieldType.Name, err))
+			}
+
+			field.Set(value)
 		}
-		// TODO: Handle options which use default values
 	}
 
 	reflect.ValueOf(handler).Call(
