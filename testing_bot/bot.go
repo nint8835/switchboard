@@ -53,7 +53,7 @@ func main() {
 		GuildID:     os.Getenv("DISCORD_GUILD_ID"),
 	})
 	session.AddHandler(switchboardInstance.HandleInteractionCreate)
-	err = switchboardInstance.RegisterCommands(session, os.Getenv("DISCORD_APP_ID"))
+	err = switchboardInstance.SyncCommands(session, os.Getenv("DISCORD_APP_ID"))
 	if err != nil {
 		log.Fatalf("error registering commands: %s", err)
 	}

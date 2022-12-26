@@ -10,6 +10,16 @@ type Switchboard struct {
 	commands []*Command
 }
 
+func (s *Switchboard) hasCommand(name string, guildId string) bool {
+	for _, command := range s.commands {
+		if command.Name == name && command.GuildID == guildId {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (s *Switchboard) handleInteractionApplicationCommand(
 	session *discordgo.Session,
 	interaction *discordgo.InteractionCreate,
@@ -41,7 +51,43 @@ func (s *Switchboard) AddCommand(command *Command) error {
 	return nil
 }
 
-func (s *Switchboard) RegisterCommands(session *discordgo.Session, appId string) error {
+func (s *Switchboard) SyncCommands(session *discordgo.Session, appId string) error {
+	// TODO: There's probably a cleaner way to do all this - check how discord.py handles it
+	globalCommands, err := session.ApplicationCommands(appId, "")
+	if err != nil {
+		return fmt.Errorf("error listing global commands: %w", err)
+	}
+
+	for _, globalCommand := range globalCommands {
+		if !s.hasCommand(globalCommand.Name, globalCommand.GuildID) {
+			err = session.ApplicationCommandDelete(appId, "", globalCommand.ID)
+			if err != nil {
+				return fmt.Errorf("error deleting command %s: %w", globalCommand.Name, err)
+			}
+		}
+	}
+
+	guilds, err := session.UserGuilds(100, "", "")
+	if err != nil {
+		return fmt.Errorf("error listing guilds: %w", err)
+	}
+
+	for _, guild := range guilds {
+		guildCommands, err := session.ApplicationCommands(appId, guild.ID)
+		if err != nil {
+			return fmt.Errorf("error listing commands for guild %s: %w", guild.ID, err)
+		}
+
+		for _, guildCommand := range guildCommands {
+			if !s.hasCommand(guildCommand.Name, guildCommand.GuildID) {
+				err = session.ApplicationCommandDelete(appId, guildCommand.GuildID, guildCommand.ID)
+				if err != nil {
+					return fmt.Errorf("error deleting command %s: %w", guildCommand.Name, err)
+				}
+			}
+		}
+	}
+
 	for _, command := range s.commands {
 		discordCmd, err := command.ToDiscordCommand()
 		if err != nil {
