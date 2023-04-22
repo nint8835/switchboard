@@ -9,7 +9,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
-	"github.com/nint8835/switchboard"
+	"pkg.nit.so/switchboard"
 )
 
 type testArgs struct {

@@ -1,4 +1,4 @@
-module github.com/nint8835/switchboard
+module pkg.nit.so/switchboard
 
 go 1.18
 
