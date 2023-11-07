@@ -27,7 +27,7 @@ func (s *Switchboard) handleInteractionApplicationCommand(
 	for _, command := range s.commands {
 		if command.Name == interaction.ApplicationCommandData().Name &&
 			(command.GuildID == "" || command.GuildID == interaction.GuildID) {
-			invokeCommand(session, interaction, command.Handler)
+			invokeCommand(command, session, interaction, command.Handler)
 			return nil
 		}
 	}

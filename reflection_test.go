@@ -170,8 +170,8 @@ func Test_getCommandOptions_WithInvalidArgumentType(t *testing.T) {
 	}
 }
 
-func Test_validateHandler_WithNonFunction(t *testing.T) {
-	err := validateHandler(false)
+func Test_validateHandler_SlashCommand_WithNonFunction(t *testing.T) {
+	err := validateHandler(SlashCommand, false)
 
 	if err == nil {
 		t.Error("did not get expected error when validating handler")
@@ -181,8 +181,8 @@ func Test_validateHandler_WithNonFunction(t *testing.T) {
 	}
 }
 
-func Test_validateHandler_WithWrongArgCount(t *testing.T) {
-	err := validateHandler(func() {})
+func Test_validateHandler_SlashCommand_WithWrongArgCount(t *testing.T) {
+	err := validateHandler(SlashCommand, func() {})
 
 	if err == nil {
 		t.Error("did not get expected error when validating handler")
@@ -192,8 +192,8 @@ func Test_validateHandler_WithWrongArgCount(t *testing.T) {
 	}
 }
 
-func Test_validateHandler_WithInvalidFirstArg(t *testing.T) {
-	err := validateHandler(func(first bool, second *discordgo.InteractionCreate, third struct{}) {})
+func Test_validateHandler_SlashCommand_WithInvalidFirstArg(t *testing.T) {
+	err := validateHandler(SlashCommand, func(first bool, second *discordgo.InteractionCreate, third struct{}) {})
 
 	if err == nil {
 		t.Error("did not get expected error when validating handler")
@@ -203,6 +203,7 @@ func Test_validateHandler_WithInvalidFirstArg(t *testing.T) {
 	}
 
 	err = validateHandler(
+		SlashCommand,
 		func(first discordgo.Session, second *discordgo.InteractionCreate, third struct{}) {}, //nolint:govet
 	)
 
@@ -214,8 +215,8 @@ func Test_validateHandler_WithInvalidFirstArg(t *testing.T) {
 	}
 }
 
-func Test_validateHandler_WithInvalidSecondArg(t *testing.T) {
-	err := validateHandler(func(first *discordgo.Session, second bool, third struct{}) {})
+func Test_validateHandler_SlashCommand_WithInvalidSecondArg(t *testing.T) {
+	err := validateHandler(SlashCommand, func(first *discordgo.Session, second bool, third struct{}) {})
 
 	if err == nil {
 		t.Error("did not get expected error when validating handler")
@@ -224,7 +225,10 @@ func Test_validateHandler_WithInvalidSecondArg(t *testing.T) {
 		t.Errorf("got unexpected error when validating handler: %s", err)
 	}
 
-	err = validateHandler(func(first *discordgo.Session, second discordgo.InteractionCreate, third struct{}) {})
+	err = validateHandler(
+		SlashCommand,
+		func(first *discordgo.Session, second discordgo.InteractionCreate, third struct{}) {},
+	)
 
 	if err == nil {
 		t.Error("did not get expected error when validating handler")
@@ -234,8 +238,11 @@ func Test_validateHandler_WithInvalidSecondArg(t *testing.T) {
 	}
 }
 
-func Test_validateHandler_WithInvalidThird(t *testing.T) {
-	err := validateHandler(func(first *discordgo.Session, second *discordgo.InteractionCreate, third bool) {})
+func Test_validateHandler_SlashCommand_WithInvalidThird(t *testing.T) {
+	err := validateHandler(
+		SlashCommand,
+		func(first *discordgo.Session, second *discordgo.InteractionCreate, third bool) {},
+	)
 
 	if err == nil {
 		t.Error("did not get expected error when validating handler")
@@ -245,15 +252,126 @@ func Test_validateHandler_WithInvalidThird(t *testing.T) {
 	}
 }
 
-func Test_validateHandler_WithValidHandler(t *testing.T) {
-	err := validateHandler(func(first *discordgo.Session, second *discordgo.InteractionCreate, third struct{}) {})
+func Test_validateHandler_SlashCommand_WithValidHandler(t *testing.T) {
+	err := validateHandler(
+		SlashCommand,
+		func(first *discordgo.Session, second *discordgo.InteractionCreate, third struct{}) {},
+	)
 
 	if err != nil {
 		t.Errorf("got unexpected error when validating handler: %s", err)
 	}
 }
 
-func Test_invokeCommand_WithNoArgs(t *testing.T) {
+func Test_validateHandler_MessageCommand_WithNonFunction(t *testing.T) {
+	err := validateHandler(MessageCommand, false)
+
+	if err == nil {
+		t.Error("did not get expected error when validating handler")
+	}
+	if !errors.Is(err, ErrHandlerNotFunction) {
+		t.Errorf("got unexpected error when validating handler: %s", err)
+	}
+}
+
+func Test_validateHandler_MessageCommand_WithWrongArgCount(t *testing.T) {
+	err := validateHandler(MessageCommand, func() {})
+
+	if err == nil {
+		t.Error("did not get expected error when validating handler")
+	}
+	if !errors.Is(err, ErrHandlerInvalidParameterCount) {
+		t.Errorf("got unexpected error when validating handler: %s", err)
+	}
+}
+
+func Test_validateHandler_MessageCommand_WithInvalidFirstArg(t *testing.T) {
+	err := validateHandler(
+		MessageCommand,
+		func(first bool, second *discordgo.InteractionCreate, third *discordgo.Message) {},
+	)
+
+	if err == nil {
+		t.Error("did not get expected error when validating handler")
+	}
+	if !errors.Is(err, ErrHandlerInvalidFirstParameterType) {
+		t.Errorf("got unexpected error when validating handler: %s", err)
+	}
+
+	err = validateHandler(
+		MessageCommand,
+		func(first discordgo.Session, second *discordgo.InteractionCreate, third *discordgo.Message) {}, //nolint:govet
+	)
+
+	if err == nil {
+		t.Error("did not get expected error when validating handler")
+	}
+	if !errors.Is(err, ErrHandlerInvalidFirstParameterType) {
+		t.Errorf("got unexpected error when validating handler: %s", err)
+	}
+}
+
+func Test_validateHandler_MessageCommand_WithInvalidSecondArg(t *testing.T) {
+	err := validateHandler(MessageCommand, func(first *discordgo.Session, second bool, third *discordgo.Message) {})
+
+	if err == nil {
+		t.Error("did not get expected error when validating handler")
+	}
+	if !errors.Is(err, ErrHandlerInvalidSecondParameterType) {
+		t.Errorf("got unexpected error when validating handler: %s", err)
+	}
+
+	err = validateHandler(
+		MessageCommand,
+		func(first *discordgo.Session, second discordgo.InteractionCreate, third *discordgo.Message) {},
+	)
+
+	if err == nil {
+		t.Error("did not get expected error when validating handler")
+	}
+	if !errors.Is(err, ErrHandlerInvalidSecondParameterType) {
+		t.Errorf("got unexpected error when validating handler: %s", err)
+	}
+}
+
+func Test_validateHandler_MessageCommand_WithInvalidThird(t *testing.T) {
+	err := validateHandler(
+		MessageCommand,
+		func(first *discordgo.Session, second *discordgo.InteractionCreate, third bool) {},
+	)
+
+	if err == nil {
+		t.Error("did not get expected error when validating handler")
+	}
+	if !errors.Is(err, ErrMessageHandlerInvalidThirdParameterType) {
+		t.Errorf("got unexpected error when validating handler: %s", err)
+	}
+
+	err = validateHandler(
+		MessageCommand,
+		func(first *discordgo.Session, second *discordgo.InteractionCreate, third discordgo.Message) {},
+	)
+
+	if err == nil {
+		t.Error("did not get expected error when validating handler")
+	}
+	if !errors.Is(err, ErrMessageHandlerInvalidThirdParameterType) {
+		t.Errorf("got unexpected error when validating handler: %s", err)
+	}
+}
+
+func Test_validateHandler_MessageCommand_WithValidHandler(t *testing.T) {
+	err := validateHandler(
+		MessageCommand,
+		func(first *discordgo.Session, second *discordgo.InteractionCreate, third *discordgo.Message) {},
+	)
+
+	if err != nil {
+		t.Errorf("got unexpected error when validating handler: %s", err)
+	}
+}
+
+func Test_invokeCommand_SlashCommand_WithNoArgs(t *testing.T) {
 	interactionData := discordgo.InteractionCreate{
 		Interaction: &discordgo.Interaction{
 			Type: discordgo.InteractionApplicationCommand,
@@ -266,6 +384,9 @@ func Test_invokeCommand_WithNoArgs(t *testing.T) {
 	called := false
 
 	invokeCommand(
+		&Command{
+			Type: SlashCommand,
+		},
 		&discordgo.Session{},
 		&interactionData,
 		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, _ struct{}) {
@@ -277,7 +398,7 @@ func Test_invokeCommand_WithNoArgs(t *testing.T) {
 	}
 }
 
-func Test_invokeCommand_WithProvidedArgs(t *testing.T) {
+func Test_invokeCommand_SlashCommand_WithProvidedArgs(t *testing.T) {
 	interactionData := discordgo.InteractionCreate{
 		Interaction: &discordgo.Interaction{
 			Type: discordgo.InteractionApplicationCommand,
@@ -342,6 +463,9 @@ func Test_invokeCommand_WithProvidedArgs(t *testing.T) {
 	}
 
 	invokeCommand(
+		&Command{
+			Type: SlashCommand,
+		},
 		nil,
 		&interactionData,
 		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, args Args) {
@@ -358,6 +482,53 @@ func Test_invokeCommand_WithProvidedArgs(t *testing.T) {
 					Role:    discordgo.Role{ID: "12345"},
 					Float:   12345.0,
 					//Attachment: discordgo.MessageAttachment{ID: "12345"},
+				},
+			); diff != nil {
+				t.Error(diff)
+			}
+		})
+
+	if !called {
+		t.Error("handler function not called")
+	}
+}
+
+func Test_invokeCommand_MessageCommand(t *testing.T) {
+	interactionData := discordgo.InteractionCreate{
+		Interaction: &discordgo.Interaction{
+			Type: discordgo.InteractionApplicationCommand,
+			Data: discordgo.ApplicationCommandInteractionData{
+				TargetID: "1",
+
+				Resolved: &discordgo.ApplicationCommandInteractionDataResolved{Messages: map[string]*discordgo.Message{
+					"1": {
+						ID:      "1",
+						Content: "Test",
+						GuildID: "",
+					},
+				}},
+			},
+			GuildID: "2",
+		},
+	}
+
+	called := false
+
+	invokeCommand(
+		&Command{
+			Type: MessageCommand,
+		},
+		&discordgo.Session{},
+		&interactionData,
+		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, msg *discordgo.Message) {
+			called = true
+
+			if diff := deep.Equal(
+				msg,
+				&discordgo.Message{
+					ID:      "1",
+					Content: "Test",
+					GuildID: "2",
 				},
 			); diff != nil {
 				t.Error(diff)

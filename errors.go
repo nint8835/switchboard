@@ -22,6 +22,9 @@ var ErrHandlerInvalidSecondParameterType = errors.New(
 var ErrHandlerInvalidThirdParameterType = errors.New(
 	"incorrect third parameter type for handler - third parameter must be of type struct",
 )
+var ErrMessageHandlerInvalidThirdParameterType = errors.New(
+	"incorrect third parameter type for handler - third parameter must be of type *discordgo.Message",
+)
 var ErrUnknownCommand = errors.New("unknown command")
 var ErrUnsupportedInteractionType = errors.New("unsupported interaction type")
 var ErrUnsupportedDefaultArgType = errors.New(

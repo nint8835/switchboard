@@ -72,7 +72,7 @@ func getCommandOptions(handler any) ([]*discordgo.ApplicationCommandOption, erro
 	return options, nil
 }
 
-func validateHandler(handler any) error {
+func validateSlashCommand(handler any) error {
 	handlerType := reflect.TypeOf(handler)
 
 	if handlerType.Kind() != reflect.Func {
@@ -98,6 +98,44 @@ func validateHandler(handler any) error {
 	}
 
 	return nil
+}
+
+func validateMessageCommand(handler any) error {
+	handlerType := reflect.TypeOf(handler)
+
+	if handlerType.Kind() != reflect.Func {
+		return ErrHandlerNotFunction
+	}
+
+	if handlerType.NumIn() != 3 {
+		return ErrHandlerInvalidParameterCount
+	}
+
+	firstParam := handlerType.In(0)
+	if firstParam.Kind() != reflect.Ptr || firstParam.Elem() != reflect.TypeOf(discordgo.Session{}) {
+		return ErrHandlerInvalidFirstParameterType
+	}
+
+	secondParam := handlerType.In(1)
+	if secondParam.Kind() != reflect.Ptr || secondParam.Elem() != reflect.TypeOf(discordgo.InteractionCreate{}) {
+		return ErrHandlerInvalidSecondParameterType
+	}
+
+	thirdParam := handlerType.In(2)
+	if thirdParam.Kind() != reflect.Ptr || thirdParam.Elem() != reflect.TypeOf(discordgo.Message{}) {
+		return ErrMessageHandlerInvalidThirdParameterType
+	}
+
+	return nil
+}
+
+var validationFuncs = map[CommandType]func(any) error{
+	SlashCommand:   validateSlashCommand,
+	MessageCommand: validateMessageCommand,
+}
+
+func validateHandler(commandType CommandType, handler any) error {
+	return validationFuncs[commandType](handler)
 }
 
 func getDefaultValue(field reflect.StructField) (reflect.Value, error) {
@@ -129,7 +167,7 @@ func getDefaultValue(field reflect.StructField) (reflect.Value, error) {
 	}
 }
 
-func invokeCommand(session *discordgo.Session, interaction *discordgo.InteractionCreate, handler any) {
+func invokeSlashCommand(session *discordgo.Session, interaction *discordgo.InteractionCreate, handler any) {
 	optionsMap := map[string]*discordgo.ApplicationCommandInteractionDataOption{}
 
 	for _, option := range interaction.ApplicationCommandData().Options {
@@ -193,4 +231,34 @@ func invokeCommand(session *discordgo.Session, interaction *discordgo.Interactio
 			argsParamValue,
 		},
 	)
+}
+
+func invokeMessageCommand(session *discordgo.Session, interaction *discordgo.InteractionCreate, handler any) {
+	msg := interaction.ApplicationCommandData().Resolved.Messages[interaction.ApplicationCommandData().TargetID]
+
+	// I'm not fully certain why this isn't included
+	// TODO: See if there is a better solution for this
+	msg.GuildID = interaction.GuildID
+
+	reflect.ValueOf(handler).Call(
+		[]reflect.Value{
+			reflect.ValueOf(session),
+			reflect.ValueOf(interaction),
+			reflect.ValueOf(msg),
+		},
+	)
+}
+
+var invocationFuncs = map[CommandType]func(*discordgo.Session, *discordgo.InteractionCreate, any){
+	SlashCommand:   invokeSlashCommand,
+	MessageCommand: invokeMessageCommand,
+}
+
+func invokeCommand(
+	command *Command,
+	session *discordgo.Session,
+	interaction *discordgo.InteractionCreate,
+	handler any,
+) {
+	invocationFuncs[command.Type](session, interaction, handler)
 }
