@@ -10,16 +10,6 @@ type Switchboard struct {
 	commands []*Command
 }
 
-func (s *Switchboard) hasCommand(name string, guildId string) bool {
-	for _, command := range s.commands {
-		if command.Name == name && command.GuildID == guildId {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (s *Switchboard) handleInteractionApplicationCommand(
 	session *discordgo.Session,
 	interaction *discordgo.InteractionCreate,
