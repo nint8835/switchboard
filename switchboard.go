@@ -52,50 +52,20 @@ func (s *Switchboard) AddCommand(command *Command) error {
 }
 
 func (s *Switchboard) SyncCommands(session *discordgo.Session, appId string) error {
-	// TODO: There's probably a cleaner way to do all this - check how discord.py handles it
-	globalCommands, err := session.ApplicationCommands(appId, "")
-	if err != nil {
-		return fmt.Errorf("error listing global commands: %w", err)
-	}
-
-	for _, globalCommand := range globalCommands {
-		if !s.hasCommand(globalCommand.Name, globalCommand.GuildID) {
-			err = session.ApplicationCommandDelete(appId, "", globalCommand.ID)
-			if err != nil {
-				return fmt.Errorf("error deleting command %s: %w", globalCommand.Name, err)
-			}
-		}
-	}
-
-	guilds, err := session.UserGuilds(100, "", "")
-	if err != nil {
-		return fmt.Errorf("error listing guilds: %w", err)
-	}
-
-	for _, guild := range guilds {
-		guildCommands, err := session.ApplicationCommands(appId, guild.ID)
-		if err != nil {
-			return fmt.Errorf("error listing commands for guild %s: %w", guild.ID, err)
-		}
-
-		for _, guildCommand := range guildCommands {
-			if !s.hasCommand(guildCommand.Name, guildCommand.GuildID) {
-				err = session.ApplicationCommandDelete(appId, guildCommand.GuildID, guildCommand.ID)
-				if err != nil {
-					return fmt.Errorf("error deleting command %s: %w", guildCommand.Name, err)
-				}
-			}
-		}
-	}
+	guildCommands := map[string][]*discordgo.ApplicationCommand{}
 
 	for _, command := range s.commands {
-		discordCmd, err := command.ToDiscordCommand()
+		discordCommand, err := command.ToDiscordCommand()
 		if err != nil {
 			return fmt.Errorf("error generating discord command for command %s: %w", command.Name, err)
 		}
-		_, err = session.ApplicationCommandCreate(appId, command.GuildID, discordCmd)
+		guildCommands[command.GuildID] = append(guildCommands[command.GuildID], discordCommand)
+	}
+
+	for guildId, commands := range guildCommands {
+		_, err := session.ApplicationCommandBulkOverwrite(appId, guildId, commands)
 		if err != nil {
-			return fmt.Errorf("error registering discord command for command %s: %w", command.Name, err)
+			return fmt.Errorf("error syncing commands for guild %s: %w", guildId, err)
 		}
 	}
 
