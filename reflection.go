@@ -21,6 +21,7 @@ var argTypeMap = map[reflect.Type]discordgo.ApplicationCommandOptionType{
 	// ???: discordgo.ApplicationCommandOptionMentionable,
 	reflect.TypeOf(0.0):                           discordgo.ApplicationCommandOptionNumber,
 	reflect.TypeOf(discordgo.MessageAttachment{}): discordgo.ApplicationCommandOptionAttachment,
+	reflect.TypeOf(uint(0)):                       discordgo.ApplicationCommandOptionInteger,
 }
 
 func getOptionType(argType reflect.Type) (discordgo.ApplicationCommandOptionType, error) {
@@ -64,6 +65,16 @@ func getCommandOptions(handler any) ([]*discordgo.ApplicationCommandOption, erro
 			Required:    !(hasDefault || isPtr),
 			Type:        optionType,
 			Description: description,
+		}
+
+		resolvedType := arg.Type
+		if resolvedType.Kind() == reflect.Ptr {
+			resolvedType = resolvedType.Elem()
+		}
+
+		if resolvedType == reflect.TypeOf(uint(0)) {
+			minValue := 0.0
+			option.MinValue = &minValue
 		}
 
 		options = append(options, option)
@@ -150,6 +161,12 @@ func getDefaultValue(field reflect.StructField) (reflect.Value, error) {
 			return reflect.Value{}, fmt.Errorf("error parsing default value: %w", err)
 		}
 		return reflect.ValueOf(intVal), nil
+	case reflect.TypeOf(uint(0)):
+		uintVal, err := strconv.ParseUint(defaultVal, 10, 64)
+		if err != nil {
+			return reflect.Value{}, fmt.Errorf("error parsing default value: %w", err)
+		}
+		return reflect.ValueOf(uint(uintVal)), nil
 	case reflect.TypeOf(false):
 		boolVal, err := strconv.ParseBool(defaultVal)
 		if err != nil {
@@ -189,7 +206,15 @@ func invokeSlashCommand(session *discordgo.Session, interaction *discordgo.Inter
 			case discordgo.ApplicationCommandOptionString:
 				value = reflect.ValueOf(option.StringValue())
 			case discordgo.ApplicationCommandOptionInteger:
-				value = reflect.ValueOf(int(option.IntValue()))
+				actualType := fieldType.Type
+				if actualType.Kind() == reflect.Ptr {
+					actualType = actualType.Elem()
+				}
+				if actualType == reflect.TypeOf(uint(0)) {
+					value = reflect.ValueOf(uint(option.IntValue()))
+				} else {
+					value = reflect.ValueOf(int(option.IntValue()))
+				}
 			case discordgo.ApplicationCommandOptionBoolean:
 				value = reflect.ValueOf(option.BoolValue())
 			// TODO: Is it fine to dereference users, roles, etc.?
