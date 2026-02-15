@@ -9,10 +9,13 @@ import (
 )
 
 func Test_getCommandOptions_WithAllValidOptionTypes(t *testing.T) {
+	minValue := 0.0
+
 	options, err := getCommandOptions(
 		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, args struct {
 			String     string                      `description:"String argument"`
 			Int        int                         `description:"Int argument"`
+			Uint       uint                        `description:"Uint argument"`
 			Bool       bool                        `description:"Bool argument"`
 			User       discordgo.User              `description:"User argument"`
 			Channel    discordgo.Channel           `description:"Channel argument"`
@@ -40,6 +43,13 @@ func Test_getCommandOptions_WithAllValidOptionTypes(t *testing.T) {
 				Required:    true,
 				Type:        discordgo.ApplicationCommandOptionInteger,
 				Description: "Int argument",
+			},
+			{
+				Name:        "uint",
+				Required:    true,
+				Type:        discordgo.ApplicationCommandOptionInteger,
+				Description: "Uint argument",
+				MinValue:    &minValue,
 			},
 			{
 				Name:        "bool",
@@ -149,6 +159,66 @@ func Test_getCommandOptions_WithNoOptions(t *testing.T) {
 	if diff := deep.Equal(
 		options,
 		[]*discordgo.ApplicationCommandOption{},
+	); diff != nil {
+		t.Error(diff)
+	}
+}
+
+func Test_getCommandOptions_WithUintOption(t *testing.T) {
+	minValue := 0.0
+
+	options, err := getCommandOptions(
+		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, args struct {
+			Count uint `description:"Count argument"`
+		}) {
+		},
+	)
+
+	if err != nil {
+		t.Errorf("got unexpected error getting command options: %s", err)
+	}
+
+	if diff := deep.Equal(
+		options,
+		[]*discordgo.ApplicationCommandOption{
+			{
+				Name:        "count",
+				Required:    true,
+				Type:        discordgo.ApplicationCommandOptionInteger,
+				Description: "Count argument",
+				MinValue:    &minValue,
+			},
+		},
+	); diff != nil {
+		t.Error(diff)
+	}
+}
+
+func Test_getCommandOptions_WithUintPointerOption(t *testing.T) {
+	minValue := 0.0
+
+	options, err := getCommandOptions(
+		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, args struct {
+			Count *uint `description:"Count argument"`
+		}) {
+		},
+	)
+
+	if err != nil {
+		t.Errorf("got unexpected error getting command options: %s", err)
+	}
+
+	if diff := deep.Equal(
+		options,
+		[]*discordgo.ApplicationCommandOption{
+			{
+				Name:        "count",
+				Required:    false,
+				Type:        discordgo.ApplicationCommandOptionInteger,
+				Description: "Count argument",
+				MinValue:    &minValue,
+			},
+		},
 	); diff != nil {
 		t.Error(diff)
 	}
@@ -482,6 +552,52 @@ func Test_invokeCommand_SlashCommand_WithProvidedArgs(t *testing.T) {
 					Role:    discordgo.Role{ID: "12345"},
 					Float:   12345.0,
 					//Attachment: discordgo.MessageAttachment{ID: "12345"},
+				},
+			); diff != nil {
+				t.Error(diff)
+			}
+		})
+
+	if !called {
+		t.Error("handler function not called")
+	}
+}
+
+func Test_invokeCommand_SlashCommand_WithUintArg(t *testing.T) {
+	interactionData := discordgo.InteractionCreate{
+		Interaction: &discordgo.Interaction{
+			Type: discordgo.InteractionApplicationCommand,
+			Data: discordgo.ApplicationCommandInteractionData{
+				Options: []*discordgo.ApplicationCommandInteractionDataOption{
+					{
+						Name:  "count",
+						Type:  discordgo.ApplicationCommandOptionInteger,
+						Value: 42.0,
+					},
+				},
+			},
+		},
+	}
+
+	called := false
+
+	type Args struct {
+		Count uint
+	}
+
+	invokeCommand(
+		&Command{
+			Type: SlashCommand,
+		},
+		nil,
+		&interactionData,
+		func(_ *discordgo.Session, _ *discordgo.InteractionCreate, args Args) {
+			called = true
+
+			if diff := deep.Equal(
+				args,
+				Args{
+					Count: 42,
 				},
 			); diff != nil {
 				t.Error(diff)
